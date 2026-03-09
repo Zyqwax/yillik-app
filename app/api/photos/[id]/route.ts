@@ -1,39 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { getSession } from '@/lib/auth';
-import fs from 'fs/promises';
-import path from 'path';
+import { v2 as cloudinary } from 'cloudinary';
+import dbConnect from '@/lib/mongodb';
+import Photo from '@/models/Photo';
+import Vote from '@/models/Vote';
+import Comment from '@/models/Comment';
 
-const prisma = new PrismaClient();
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: 'Yetkisiz erişim' }, { status: 401 });
   }
 
-  const { id } = await params;
-
-  const photo = await prisma.photo.findUnique({ where: { id } });
-
-  if (!photo) {
-    return NextResponse.json({ message: 'Fotoğraf bulunamadı' }, { status: 404 });
-  }
-
-  if (photo.userId !== session.userId) {
-    return NextResponse.json({ message: 'Bu fotoğrafı silme yetkiniz yok' }, { status: 403 });
-  }
-
-  // Delete file from disk
   try {
-    const filePath = path.join(process.cwd(), 'public', photo.url);
-    await fs.unlink(filePath);
-  } catch (e) {
-    // File may already be gone, ignore
+    await dbConnect();
+    const { id } = await params;
+
+    const photo = await Photo.findById(id);
+
+    if (!photo) {
+      return NextResponse.json({ message: 'Fotoğraf bulunamadı' }, { status: 404 });
+    }
+
+    if (photo.userId.toString() !== session.userId) {
+      return NextResponse.json({ message: 'Bu fotoğrafı silme yetkiniz yok' }, { status: 403 });
+    }
+
+    // Delete from Cloudinary (extract public_id from URL)
+    try {
+      const urlParts = photo.url.split('/');
+      const folderAndFile = urlParts.slice(-2).join('/');           // "yillik-foto/filename"
+      const publicId = folderAndFile.replace(/\.[^/.]+$/, '');     // Remove extension
+      await cloudinary.uploader.destroy(publicId);
+    } catch (error) {
+      console.error('Cloudinary delete error (non-fatal):', error);
+      // Devam et — DB kaydı silinmeli
+    }
+
+    // Delete from DB (manual cascade)
+    await Vote.deleteMany({ photoId: id });
+    await Comment.deleteMany({ photoId: id });
+    await Photo.findByIdAndDelete(id);
+
+    return NextResponse.json({ message: 'Fotoğraf silindi' });
+  } catch (error) {
+    console.error('Delete error:', error);
+    return NextResponse.json({ message: 'Silme işlemi sırasında hata oluştu' }, { status: 500 });
   }
-
-  // Delete from DB (votes and comments cascade delete)
-  await prisma.photo.delete({ where: { id } });
-
-  return NextResponse.json({ message: 'Fotoğraf silindi' });
 }

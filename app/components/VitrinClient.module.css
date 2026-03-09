@@ -1,5 +1,5 @@
 .container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 1.5rem;
   color: #fff;
@@ -9,8 +9,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 0 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.25rem 0 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   margin-bottom: 2rem;
   flex-wrap: wrap;
   gap: 1rem;
@@ -19,73 +19,92 @@
 .logoInfo {
   display: flex;
   flex-direction: column;
+  gap: 0.2rem;
 }
 
 .logo {
-  font-size: 2rem;
+  font-size: 1.9rem;
   font-weight: 800;
+  letter-spacing: -0.03em;
   background: linear-gradient(to right, #f472b6, #c084fc, #818cf8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
   line-height: 1.2;
 }
 
 .subtitle {
-  color: #9ca3af;
-  font-size: 0.95rem;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   margin: 0;
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .greeting {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.greeting strong {
   color: #e5e7eb;
+  font-weight: 600;
 }
 
 .uploadBtn {
-  background: linear-gradient(to right, #ec4899, #8b5cf6);
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
   color: white;
   border: none;
   border-radius: 9999px;
   padding: 0.6rem 1.25rem;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.3);
+  white-space: nowrap;
 }
 
 .uploadBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(236, 72, 153, 0.5);
+  box-shadow: 0 8px 20px rgba(236, 72, 153, 0.45);
+}
+
+.uploadBtn:active {
+  transform: translateY(0);
 }
 
 .logoutBtn {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #d1d5db;
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  color: #9ca3af;
+  border-radius: 9999px;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .logoutBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
 }
 
@@ -98,19 +117,81 @@
   text-align: center;
   color: #9ca3af;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
   border-radius: 20px;
+  gap: 0.75rem;
 }
 
 .emptyIcon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
   opacity: 0.5;
 }
 
-@media (max-width: 640px) {
+/* ─── Tablet (≤ 1024px) ─────────────────────────────────── */
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+/* ─── Tablet portrait / large phone (≤ 768px) ───────────── */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
   .header {
-    flex-direction: column;
-    align-items: flex-start;
+    padding: 1rem 0 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .logo {
+    font-size: 1.6rem;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .greeting {
+    display: none; /* Hide greeting on small tablet to save space */
+  }
+}
+
+/* ─── Mobile (≤ 480px) ──────────────────────────────────── */
+@media (max-width: 480px) {
+  .container {
+    padding: 0.75rem;
+  }
+
+  .header {
+    padding: 0.75rem 0 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .logo {
+    font-size: 1.4rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 0.875rem;
+  }
+
+  .actions {
+    gap: 0.5rem;
+  }
+
+  .uploadBtn {
+    padding: 0.55rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .logoutBtn {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
   }
 }

@@ -14,7 +14,13 @@ type PhotoType = {
   hasVoted: boolean;
 };
 
-export default function VitrinClient({ initialPhotos, user }: { initialPhotos: PhotoType[], user: any }) {
+interface UserType {
+  name: string;
+  username: string;
+  userId: string;
+}
+
+export default function VitrinClient({ initialPhotos, user }: { initialPhotos: PhotoType[], user: UserType }) {
   const [photos, setPhotos] = useState<PhotoType[]>(initialPhotos);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
@@ -54,7 +60,7 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
         </div>
       </header>
 
-      <main className={styles.main}>
+      <main>
         {photos.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>👻</div>

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { updateSession, getSession } from '@/lib/auth';
+
+import { decrypt } from '@/lib/auth';
+
+const COOKIE_NAME = 'yillik_foto_session';
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -15,27 +18,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = request.cookies.get('yillik_foto_session')?.value;
-  let user = null;
+  const session = request.cookies.get(COOKIE_NAME)?.value;
+  let sessionData = null;
 
   if (session) {
     try {
-      // Dynamic imports or crypto functionality issues inside edge may occur, but `jose` usually works well.
-      user = await updateSession(request);
-      // Wait, updateSession returns a response header update if we wanted to update it.
-      // But we just need to verify it. We can just check existence.
-    } catch (e) {
-      console.error(e);
-      // Token expired or invalid
-      user = null;
+      sessionData = await decrypt(session);
+    } catch {
+      // Invalid session cookie (likely stale), clear it
+      const response = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete(COOKIE_NAME);
+      return response;
     }
   }
 
-  if (!isPublicPath && !session) {
+  if (!isPublicPath && !sessionData) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (isPublicPath && session) {
+  if (isPublicPath && sessionData) {
     // If user is already logged in and tries to access /login, redirect to home
     return NextResponse.redirect(new URL('/', request.url));
   }

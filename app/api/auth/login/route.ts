@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { setSession } from '@/lib/auth';
-
-const prisma = new PrismaClient();
+import dbConnect from '@/lib/mongodb';
+import User from '@/models/User';
 
 export async function POST(request: NextRequest) {
   try {
+    await dbConnect();
     const { username, password } = await request.json();
 
     if (!username || !password) {
@@ -16,9 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { username },
-    });
+    const user = await User.findOne({ username });
 
     if (!user) {
       return NextResponse.json(
@@ -36,9 +34,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await setSession(user.id, user.username, user.name);
+    await setSession(user._id.toString(), user.username, user.name);
 
-    return NextResponse.json({ message: 'Giriş başarılı.', user: { id: user.id, username: user.username, name: user.name } });
+    return NextResponse.json({ message: 'Giriş başarılı.', user: { id: user._id.toString(), username: user.username, name: user.name } });
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

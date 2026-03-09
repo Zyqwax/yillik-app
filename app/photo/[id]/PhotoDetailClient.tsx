@@ -13,7 +13,8 @@ type PhotoType = {
   user: { name: string; username: string };
   hasVoted: boolean;
   isOwner: boolean;
-  comments: { id: string; text: string; createdAt: string; user: { name: string; username: string } }[];
+  currentUserId: string;
+  comments: { id: string; text: string; createdAt: string; userId: string; user: { name: string; username: string } }[];
 };
 
 export default function PhotoDetailClient({ initialPhoto }: { initialPhoto: PhotoType }) {
@@ -67,7 +68,8 @@ export default function PhotoDetailClient({ initialPhoto }: { initialPhoto: Phot
           ...prev,
           comments: [...prev.comments, {
             ...data.comment,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            userId: photo.currentUserId
           }]
         }));
         setNewComment("");
@@ -76,6 +78,25 @@ export default function PhotoDetailClient({ initialPhoto }: { initialPhoto: Phot
       console.error(error);
     } finally {
       setIsCommenting(false);
+    }
+  };
+
+  const deleteComment = async (commentId: string) => {
+    if (!window.confirm('Bu yorumu silmek istediğine emin misin?')) return;
+    
+    try {
+      const res = await fetch(`/api/comment/${commentId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setPhoto(prev => ({
+          ...prev,
+          comments: prev.comments.filter(c => c.id !== commentId)
+        }));
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
     }
   };
 
@@ -165,9 +186,19 @@ export default function PhotoDetailClient({ initialPhoto }: { initialPhoto: Phot
                   <div className={styles.commentContent}>
                     <div className={styles.commentHeader}>
                       <span className={styles.commentName}>{comment.user.name}</span>
-                      <span className={styles.commentTime}>
-                        {new Date(comment.createdAt).toLocaleDateString('tr-TR')}
-                      </span>
+                      <div className={styles.commentMeta}>
+                        <span className={styles.commentTime}>
+                          {new Date(comment.createdAt).toLocaleDateString('tr-TR')}
+                        </span>
+                        {comment.userId === photo.currentUserId && (
+                          <button 
+                            className={styles.commentDeleteBtn}
+                            onClick={() => deleteComment(comment.id)}
+                          >
+                            Sil
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <p className={styles.commentText}>{comment.text}</p>
                   </div>

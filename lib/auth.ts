@@ -2,11 +2,19 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 
-const secretKey = 'yillik_foto_gizli_anahtar';
+const secretKey = process.env.JWT_SECRET || 'yillik_foto_gizli_anahtar';
 const key = new TextEncoder().encode(secretKey);
 const COOKIE_NAME = 'yillik_foto_session';
 
-export async function encrypt(payload: any) {
+export interface SessionPayload {
+  userId: string;
+  username: string;
+  name: string;
+  expires: string | number | Date;
+  [key: string]: string | number | Date | undefined;
+}
+
+export async function encrypt(payload: SessionPayload) {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -14,11 +22,11 @@ export async function encrypt(payload: any) {
     .sign(key);
 }
 
-export async function decrypt(input: string): Promise<any> {
+export async function decrypt(input: string): Promise<SessionPayload> {
   const { payload } = await jwtVerify(input, key, {
     algorithms: ['HS256'],
   });
-  return payload;
+  return payload as unknown as SessionPayload;
 }
 
 export async function setSession(userId: string, username: string, name: string) {
@@ -44,22 +52,21 @@ export async function updateSession(request: NextRequest) {
     const res = new Response();
     res.headers.set(
       'Set-Cookie',
-      `${COOKIE_NAME}=${await encrypt(parsed)}; Expires=${parsed.expires}; HttpOnly; Path=/`
+      `${COOKIE_NAME}=${await encrypt(parsed)}; Expires=${parsed.expires instanceof Date ? parsed.expires.toUTCString() : parsed.expires}; HttpOnly; Path=/`
     );
     return res;
-  } catch (e) {
+  } catch {
     return;
   }
 }
 
-export async function getSession() {
+export async function getSession(): Promise<SessionPayload | null> {
   const session = (await cookies()).get(COOKIE_NAME)?.value;
   if (!session) return null;
   
   try {
     return await decrypt(session);
-  } catch (e) {
-    console.error('Session decryption failed:', e);
+  } catch {
     return null;
   }
 }

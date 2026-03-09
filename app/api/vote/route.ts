@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { getSession } from '@/lib/auth';
-
-const prisma = new PrismaClient();
+import dbConnect from '@/lib/mongodb';
+import Photo from '@/models/Photo';
+import Vote from '@/models/Vote';
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    await dbConnect();
     const { photoId } = await request.json();
 
     if (!photoId) {
@@ -20,38 +21,19 @@ export async function POST(request: NextRequest) {
     const userId = session.userId;
 
     // Check if vote already exists
-    const existingVote = await prisma.vote.findUnique({
-      where: {
-        userId_photoId: {
-          userId,
-          photoId,
-        },
-      },
-    });
+    const existingVote = await Vote.findOne({ userId, photoId });
 
     if (existingVote) {
       // Remove vote (toggle off)
-      await prisma.$transaction([
-        prisma.vote.delete({
-          where: { id: existingVote.id },
-        }),
-        prisma.photo.update({
-          where: { id: photoId },
-          data: { voteCount: { decrement: 1 } },
-        }),
-      ]);
+      await Vote.deleteOne({ _id: existingVote._id });
+      await Photo.findByIdAndUpdate(photoId, { $inc: { voteCount: -1 } });
+      
       return NextResponse.json({ message: 'Oy geri alındı', voted: false });
     } else {
       // Add vote (toggle on)
-      await prisma.$transaction([
-        prisma.vote.create({
-          data: { userId, photoId },
-        }),
-        prisma.photo.update({
-          where: { id: photoId },
-          data: { voteCount: { increment: 1 } },
-        }),
-      ]);
+      await Vote.create({ userId, photoId });
+      await Photo.findByIdAndUpdate(photoId, { $inc: { voteCount: 1 } });
+      
       return NextResponse.json({ message: 'Oy verildi', voted: true });
     }
   } catch (error) {
