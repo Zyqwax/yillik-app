@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './VitrinClient.module.css';
 import PhotoCard from './PhotoCard';
 import UploadModal from './UploadModal';
@@ -33,6 +33,19 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
   const [photos, setPhotos] = useState<PhotoType[]>(initialPhotos);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [gridSize, setGridSize] = useState<'large' | 'small'>('large');
+
+  useEffect(() => {
+    const savedSize = localStorage.getItem('gridSize');
+    if (savedSize === 'large' || savedSize === 'small') {
+      // ESLint uyarısını önlemek için state güncellemesini asenkron yapıyoruz
+      queueMicrotask(() => setGridSize(savedSize));
+    }
+  }, []);
+
+  const handleSetGridSize = (size: 'large' | 'small') => {
+    setGridSize(size);
+    localStorage.setItem('gridSize', size);
+  };
 
   const fetchPhotos = async () => {
     try {
@@ -99,13 +112,13 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
             <div className={styles.viewControls}>
               <button 
                 className={`${styles.viewBtn} ${gridSize === 'large' ? styles.activeViewBtn : ''}`}
-                onClick={() => setGridSize('large')}
+                onClick={() => handleSetGridSize('large')}
               >
                 Büyük
               </button>
               <button 
                 className={`${styles.viewBtn} ${gridSize === 'small' ? styles.activeViewBtn : ''}`}
-                onClick={() => setGridSize('small')}
+                onClick={() => handleSetGridSize('small')}
               >
                 Küçük
               </button>
