@@ -19,10 +19,6 @@
   .card:hover .image {
     transform: scale(1.05);
   }
-
-  .card:hover .overlay {
-    opacity: 1;
-  }
 }
 
 .imageWrapper {
@@ -35,56 +31,6 @@
 
 .image {
   transition: transform 0.5s ease;
-}
-
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 1.25rem 1rem;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
-  opacity: 0;
-  transition: opacity 0.3s;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-/* On touch devices, always show a subtle overlay */
-@media (hover: none) {
-  .overlay {
-    opacity: 1;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 70%);
-  }
-}
-
-.userInfo {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #f43f5e, #8b5cf6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: white;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.35);
-  flex-shrink: 0;
-}
-
-.username {
-  color: white;
-  font-weight: 600;
-  font-size: 0.875rem;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
 }
 
 .content {

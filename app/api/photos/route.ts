@@ -1,21 +1,28 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import Photo from '@/models/Photo';
 import Vote from '@/models/Vote';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: 'Yetkisiz erişim' }, { status: 401 });
   }
+
+  const { searchParams } = new URL(req.url);
+  const sortParam = searchParams.get('sort') || 'popular';
+  
+  // Eğer voteCount ve createdAt eşitse diye MongoDB sıralamasında her zaman ikincil bir kriter (örn _id) yararlı olabilir, 
+  // ama şu anki yapıya uygun basit tutuyoruz.
+  const sortQuery: Record<string, 1 | -1> = sortParam === 'newest' ? { createdAt: -1 } : { voteCount: -1 };
 
   try {
     await dbConnect();
     
     const photos = await Photo.find({})
       .populate<{ userId: { name: string, username: string } }>('userId', 'name username')
-      .sort({ voteCount: -1 });
+      .sort(sortQuery);
 
     const formattedPhotos = await Promise.all(photos.map(async (photo) => {
       const vote = await Vote.findOne({

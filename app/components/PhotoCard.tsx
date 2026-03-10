@@ -58,12 +58,6 @@ export default function PhotoCard({ photo }: PhotoCardProps) {
             className={styles.image} 
             style={{ objectFit: 'cover' }}
           />
-          <div className={styles.overlay}>
-            <div className={styles.userInfo}>
-              <div className={styles.avatar}>{photo.user.name.charAt(0)}</div>
-              <span className={styles.username}>{photo.user.name}</span>
-            </div>
-          </div>
         </div>
       </Link>
       

@@ -33,23 +33,11 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
   const [photos, setPhotos] = useState<PhotoType[]>(initialPhotos);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [gridSize, setGridSize] = useState<'large' | 'small'>('large');
+  const [sortBy, setSortBy] = useState<'popular' | 'newest'>('popular');
 
-  useEffect(() => {
-    const savedSize = localStorage.getItem('gridSize');
-    if (savedSize === 'large' || savedSize === 'small') {
-      // ESLint uyarısını önlemek için state güncellemesini asenkron yapıyoruz
-      queueMicrotask(() => setGridSize(savedSize));
-    }
-  }, []);
-
-  const handleSetGridSize = (size: 'large' | 'small') => {
-    setGridSize(size);
-    localStorage.setItem('gridSize', size);
-  };
-
-  const fetchPhotos = async () => {
+  const fetchPhotos = async (sortMode = sortBy) => {
     try {
-      const res = await fetch('/api/photos');
+      const res = await fetch(`/api/photos?sort=${sortMode}`);
       if (res.ok) {
         const data = await res.json();
         setPhotos(data.photos);
@@ -57,6 +45,37 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
     } catch (e) {
       console.error(e);
     }
+  };
+
+  useEffect(() => {
+    const savedSize = localStorage.getItem('gridSize');
+    if (savedSize === 'large' || savedSize === 'small') {
+      // ESLint uyarısını önlemek için state güncellemesini asenkron yapıyoruz
+      queueMicrotask(() => setGridSize(savedSize));
+    }
+
+    const savedSort = localStorage.getItem('sortBy') as 'popular' | 'newest';
+    if (savedSort === 'popular' || savedSort === 'newest') {
+      queueMicrotask(() => {
+        setSortBy(savedSort);
+        if (savedSort !== 'popular') {
+          fetchPhotos(savedSort);
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSetGridSize = (size: 'large' | 'small') => {
+    setGridSize(size);
+    localStorage.setItem('gridSize', size);
+  };
+
+  const handleSortChange = (newSort: 'popular' | 'newest') => {
+    if (newSort === sortBy) return;
+    setSortBy(newSort);
+    localStorage.setItem('sortBy', newSort);
+    fetchPhotos(newSort);
   };
 
   const handleUploadSuccess = (newPhoto?: UploadResponsePhoto) => {
@@ -109,19 +128,36 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
           </div>
         ) : (
           <>
-            <div className={styles.viewControls}>
-              <button 
-                className={`${styles.viewBtn} ${gridSize === 'large' ? styles.activeViewBtn : ''}`}
-                onClick={() => handleSetGridSize('large')}
-              >
-                Büyük
-              </button>
-              <button 
-                className={`${styles.viewBtn} ${gridSize === 'small' ? styles.activeViewBtn : ''}`}
-                onClick={() => handleSetGridSize('small')}
-              >
-                Küçük
-              </button>
+            <div className={styles.controlsWrapper}>
+              <div className={styles.sortControls}>
+                <button 
+                  className={`${styles.viewBtn} ${sortBy === 'newest' ? styles.activeViewBtn : ''}`}
+                  onClick={() => handleSortChange('newest')}
+                >
+                  En Yeni
+                </button>
+                <button 
+                  className={`${styles.viewBtn} ${sortBy === 'popular' ? styles.activeViewBtn : ''}`}
+                  onClick={() => handleSortChange('popular')}
+                >
+                  En Beğenilen
+                </button>
+              </div>
+
+              <div className={styles.viewControls}>
+                <button 
+                  className={`${styles.viewBtn} ${gridSize === 'large' ? styles.activeViewBtn : ''}`}
+                  onClick={() => handleSetGridSize('large')}
+                >
+                  Büyük
+                </button>
+                <button 
+                  className={`${styles.viewBtn} ${gridSize === 'small' ? styles.activeViewBtn : ''}`}
+                  onClick={() => handleSetGridSize('small')}
+                >
+                  Küçük
+                </button>
+              </div>
             </div>
             
             <div className={`${styles.grid} ${gridSize === 'small' ? styles.gridSmall : ''}`}>
