@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import Image from 'next/image';
+import { CldImage } from 'next-cloudinary';
 import { useRouter } from 'next/navigation';
 import styles from './PhotoDetailClient.module.css';
 
@@ -122,7 +122,7 @@ export default function PhotoDetailClient({ initialPhoto }: { initialPhoto: Phot
       <div className={styles.contentWrapper}>
         <div className={styles.imageColumn}>
           <div className={styles.imageBox}>
-            <Image 
+            <CldImage 
               src={photo.url} 
               alt={photo.caption || 'Fotoğraf'} 
               fill 
@@ -130,6 +130,8 @@ export default function PhotoDetailClient({ initialPhoto }: { initialPhoto: Phot
               className={styles.image} 
               style={{ objectFit: 'contain' }}
               priority
+              format="auto"
+              quality="auto"
             />
           </div>
         </div>

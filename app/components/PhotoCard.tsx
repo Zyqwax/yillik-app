@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import styles from './PhotoCard.module.css';
-import Image from 'next/image';
+import { CldImage } from 'next-cloudinary';
 import Link from 'next/link';
 
 interface PhotoCardProps {
@@ -50,13 +50,15 @@ export default function PhotoCard({ photo }: PhotoCardProps) {
     <div className={styles.card}>
       <Link href={`/photo/${photo.id}`} className={styles.imageLink}>
         <div className={styles.imageWrapper}>
-          <Image 
+          <CldImage 
             src={photo.url} 
             alt={photo.caption || "Fotoğraf"} 
             fill 
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className={styles.image} 
             style={{ objectFit: 'cover' }}
+            format="auto"
+            quality="50"
           />
         </div>
       </Link>

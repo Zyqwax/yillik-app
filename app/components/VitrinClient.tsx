@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './VitrinClient.module.css';
 import PhotoCard from './PhotoCard';
 import UploadModal from './UploadModal';
@@ -12,6 +12,7 @@ type PhotoType = {
   voteCount: number;
   user: { name: string; username: string };
   hasVoted: boolean;
+  createdAt?: string;
 };
 
 interface UserType {
@@ -30,22 +31,67 @@ interface UploadResponsePhoto {
 }
 
 export default function VitrinClient({ initialPhotos, user }: { initialPhotos: PhotoType[], user: UserType }) {
-  const [photos, setPhotos] = useState<PhotoType[]>(initialPhotos);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [gridSize, setGridSize] = useState<'large' | 'small'>('large');
   const [sortBy, setSortBy] = useState<'popular' | 'newest'>('popular');
 
-  const fetchPhotos = async (sortMode = sortBy) => {
+  const [allPhotos, setAllPhotos] = useState<PhotoType[]>(initialPhotos);
+  const [visibleCount, setVisibleCount] = useState(12);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchPhotos = async () => {
+    setIsLoading(true);
     try {
-      const res = await fetch(`/api/photos?sort=${sortMode}`);
+      // API'den her zaman varsayılan sırayla tüm fotoğrafları çek
+      const res = await fetch(`/api/photos?sort=popular`);
       if (res.ok) {
         const data = await res.json();
-        setPhotos(data.photos);
+        // Gelen veriyi current sortBy'a göre sırala
+        const sorted = sortPhotosLocal(data.photos, sortBy);
+        setAllPhotos(sorted);
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const sortPhotosLocal = (photosList: PhotoType[], sortMode: 'popular' | 'newest') => {
+    return [...photosList].sort((a, b) => {
+      if (sortMode === 'popular') {
+        return b.voteCount - a.voteCount;
+      } else {
+        // ID timestamp'ten veya varsa createdAt'ten sırala
+        return b.id.localeCompare(a.id);
+      }
+    });
+  };
+
+  const visiblePhotos = allPhotos.slice(0, visibleCount);
+  const hasMore = visibleCount < allPhotos.length;
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setVisibleCount(prev => prev + 12);
+      }
+    });
+    
+    if (node) observer.current.observe(node);
+  }, [isLoading, hasMore]);
+
+  useEffect(() => {
+    // Initial load sort
+    if (initialPhotos && initialPhotos.length > 0) {
+      setAllPhotos(sortPhotosLocal(initialPhotos, sortBy));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const savedSize = localStorage.getItem('gridSize');
@@ -57,10 +103,7 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
     const savedSort = localStorage.getItem('sortBy') as 'popular' | 'newest';
     if (savedSort === 'popular' || savedSort === 'newest') {
       queueMicrotask(() => {
-        setSortBy(savedSort);
-        if (savedSort !== 'popular') {
-          fetchPhotos(savedSort);
-        }
+        handleSortChange(savedSort);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,8 +117,11 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
   const handleSortChange = (newSort: 'popular' | 'newest') => {
     if (newSort === sortBy) return;
     setSortBy(newSort);
+    setVisibleCount(12);
     localStorage.setItem('sortBy', newSort);
-    fetchPhotos(newSort);
+    
+    // Yalnızca lokale sıralama yap, API'ye tekrar istek atma
+    setAllPhotos(prev => sortPhotosLocal(prev, newSort));
   };
 
   const handleUploadSuccess = (newPhoto?: UploadResponsePhoto) => {
@@ -89,7 +135,8 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
         user: { name: user.name, username: user.username },
         hasVoted: false,
       };
-      setPhotos(prev => [formattedPhoto, ...prev]);
+      const newAll = [formattedPhoto, ...allPhotos];
+      setAllPhotos(sortPhotosLocal(newAll, sortBy));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       fetchPhotos();
@@ -106,7 +153,7 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
       <header className={styles.header}>
         <div className={styles.logoInfo}>
           <div className={styles.logo}>📸 Şamata</div>
-          <p className={styles.subtitle}>En İyiler Vitrini • {photos.length} Fotoğraf</p>
+          <p className={styles.subtitle}>En İyiler Vitrini • {allPhotos.length} Fotoğraf</p>
         </div>
         
         <div className={styles.actions}>
@@ -121,7 +168,7 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
       </header>
 
       <main>
-        {photos.length === 0 ? (
+        {allPhotos.length === 0 ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>👻</div>
             <p>Sınıfta kimse fotoğraf yüklememiş. İlk sen ol!</p>
@@ -161,10 +208,19 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
             </div>
             
             <div className={`${styles.grid} ${gridSize === 'small' ? styles.gridSmall : ''}`}>
-              {photos.map((photo) => (
+              {visiblePhotos.map((photo) => (
                 <PhotoCard key={photo.id} photo={photo} />
               ))}
             </div>
+            
+            {hasMore && (
+              <div 
+                ref={lastElementRef} 
+                style={{ height: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '20px', color: '#888' }}
+              >
+                {isLoading && <span>Yükleniyor...</span>}
+              </div>
+            )}
           </>
         )}
       </main>
