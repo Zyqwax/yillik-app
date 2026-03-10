@@ -119,6 +119,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }: { isOp
               checked={isAnonymous}
               onChange={(e) => setIsAnonymous(e.target.checked)}
               className={styles.checkboxInput}
+              disabled={true}
             />
             <span>Anonim olarak yükle (Kimliğin gizli kalır)</span>
           </label>
