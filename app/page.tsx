@@ -48,7 +48,7 @@ export default async function Home() {
     console.error('Error fetching photos:', error);
     return (
       <main>
-        <div className="p-8 text-center text-red-500">Fotoğraflar yüklenirken bir hata oluştu.</div>
+        <div className="p-8 text-center text-red-500">Fotoğraflar yüklenirken bir hata oluştu. </div>
       </main>
     );
   }
