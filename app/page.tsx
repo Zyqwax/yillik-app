@@ -18,7 +18,8 @@ export default async function Home() {
   let formattedPhotos = [];
   try {
     const photos = await Photo.find({ isHidden: { $ne: true } })
-      .populate<{ userId: { name: string, username: string, _id: unknown } }>('userId', 'name username')
+      .populate<{ userId: { name: string, username: string, _id: unknown }, selectedBy?: { username: string, _id: unknown } }>('userId', 'name username')
+      .populate('selectedBy', 'username')
       .sort({ isAdminFavorite: -1, voteCount: -1 });
 
     formattedPhotos = await Promise.all(photos.map(async (photo) => {
@@ -41,7 +42,9 @@ export default async function Home() {
         hasVoted: !!vote,
         canDelete: session.userId === String(photo.userId._id) || session.username === 'admin',
         isAdminFavorite: !!photo.isAdminFavorite,
-        isHidden: !!photo.isHidden
+        isHidden: !!photo.isHidden,
+        selectedBy: photo.selectedBy ? (photo.selectedBy as unknown as { _id: string })._id?.toString() : null,
+        selectedByUsername: photo.selectedBy ? (photo.selectedBy as unknown as { username: string }).username : null,
       };
     }));
   } catch (error) {
