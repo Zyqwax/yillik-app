@@ -118,13 +118,23 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .sortControls {
   display: flex;
   gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  min-width: 0;
+  flex: 1;
+  padding-bottom: 2px; /* scrollbar alanı için küçük boşluk */
+}
+
+.sortControls::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .viewControls {
@@ -212,6 +222,22 @@
   .greeting {
     display: none; /* Hide greeting on small tablet to save space */
   }
+
+  .controlsWrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .sortControls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .viewControls {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 /* ─── Mobile (≤ 480px) ──────────────────────────────────── */
@@ -251,5 +277,11 @@
   .logoutBtn {
     padding: 0.5rem 0.875rem;
     font-size: 0.8125rem;
+  }
+
+  .viewBtn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
   }
 }
