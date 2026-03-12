@@ -16,6 +16,8 @@ type PhotoType = {
   isAdminFavorite?: boolean;
   isHidden?: boolean;
   createdAt?: string;
+  selectedBy?: string | null;
+  selectedByUsername?: string | null;
 };
 
 interface UserType {
@@ -27,17 +29,23 @@ interface UserType {
 export default function AdminVitrinClient({
   initialPhotos,
   user,
+  userSelectionCounts = [],
+  totalSelections = 0,
 }: {
   initialPhotos: PhotoType[];
   user: UserType;
+  userSelectionCounts?: { id: string; name: string; username: string; count: number }[];
+  totalSelections?: number;
 }) {
   const [allPhotos, setAllPhotos] = useState<PhotoType[]>(initialPhotos);
-  const [filterMode, setFilterMode] = useState<'all' | 'visible' | 'hidden' | 'favorites'>('all');
+  const [filterMode, setFilterMode] = useState<'all' | 'visible' | 'hidden' | 'favorites' | 'selected'>('all');
+  const [sortMode, setSortMode] = useState<'newest' | 'popular'>('newest');
   const [uploadEnabled, setUploadEnabled] = useState<boolean | null>(null);
   const [deleteEnabled, setDeleteEnabled] = useState<boolean | null>(null);
   const [selectionQuota, setSelectionQuota] = useState<number>(5);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingSelected, setIsDownloadingSelected] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -80,16 +88,39 @@ export default function AdminVitrinClient({
       if (filterMode === 'visible') return !photo.isHidden;
       if (filterMode === 'hidden') return photo.isHidden;
       if (filterMode === 'favorites') return photo.isAdminFavorite;
+      if (filterMode === 'selected') return !!photo.selectedBy;
       return true;
     })
     .sort((a, b) => {
       if (a.isAdminFavorite && !b.isAdminFavorite) return -1;
       if (!a.isAdminFavorite && b.isAdminFavorite) return 1;
-      return 0; // maintain original order, which is by create date descending as queried in backend
+
+      if (sortMode === 'popular') {
+        return b.voteCount - a.voteCount;
+      } else {
+        return b.id.localeCompare(a.id);
+      }
     });
 
   const handleDeletePhoto = (id: string) => {
     setAllPhotos((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleClearSelection = async (id: string) => {
+    try {
+      const res = await fetch(`/api/photos/${id}/clear-selection`, { method: 'POST' });
+      if (res.ok) {
+        setAllPhotos((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, selectedBy: null, selectedByUsername: null } : p))
+        );
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Seçim kaldırılırken bir hata oluştu.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Seçim kaldırılırken bir hata oluştu.');
+    }
   };
 
   const handleToggleHide = async (id: string) => {
@@ -182,6 +213,38 @@ export default function AdminVitrinClient({
       await downloadIndividually(favorites);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadSelected = async () => {
+    if (totalSelections === 0) {
+      alert('İndirilecek seçilmiş fotoğraf bulunamadı.');
+      return;
+    }
+    
+    setIsDownloadingSelected(true);
+    try {
+      const res = await fetch('/api/admin/download-selected');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          const a = document.createElement('a');
+          a.href = data.url;
+          a.download = 'yillik_secilen_fotograflar.zip';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else {
+          alert('Toplu indirme başarısız oldu.');
+        }
+      } else {
+        alert('Seçilenleri indirme hatası.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Seçilenleri indirirken bir hata oluştu');
+    } finally {
+      setIsDownloadingSelected(false);
     }
   };
 
@@ -315,6 +378,96 @@ export default function AdminVitrinClient({
         </div>
       </div>
 
+      {/* Seçim İstatistikleri */}
+      <div
+        style={{
+          margin: '0 auto 1.5rem',
+          maxWidth: '1200px',
+          padding: '1rem 1.5rem',
+          background: 'rgba(255,255,255,0.04)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 600, opacity: 0.8, fontSize: '0.9rem' }}>
+            📊 Seçim İstatistikleri
+          </span>
+          <button
+            disabled={isDownloadingSelected || totalSelections === 0}
+            onClick={handleDownloadSelected}
+            style={{
+              padding: '0.5rem 1.1rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: (isDownloadingSelected || totalSelections === 0) ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              background: 'rgba(168,85,247,0.2)',
+              color: '#c084fc',
+              transition: 'all 0.2s',
+            }}
+          >
+            {isDownloadingSelected ? '⏳ İndiriliyor...' : `📥 Seçilenleri İndir (${totalSelections})`}
+          </button>
+        </div>
+
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
+          gap: '1rem',
+          marginTop: '0.5rem'
+        }}>
+          {userSelectionCounts.map(u => (
+            <div key={u.id} style={{ 
+              background: 'rgba(0,0,0,0.2)', 
+              padding: '0.75rem', 
+              borderRadius: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+              <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>{u.name}</span>
+              <span style={{ 
+                background: u.count >= selectionQuota ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.1)',
+                color: u.count >= selectionQuota ? '#4ade80' : 'white',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '12px',
+                fontSize: '0.8rem',
+                fontWeight: 'bold'
+              }}>
+                {u.count} / {selectionQuota}
+              </span>
+            </div>
+          ))}
+          <div style={{ 
+            background: 'rgba(59,130,246,0.15)', 
+            padding: '0.75rem', 
+            borderRadius: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            border: '1px solid rgba(59,130,246,0.3)'
+          }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#93c5fd' }}>Toplam Seçim</span>
+            <span style={{ 
+              background: 'rgba(59,130,246,0.3)',
+              color: 'white',
+              padding: '0.2rem 0.6rem',
+              borderRadius: '12px',
+              fontSize: '0.8rem',
+              fontWeight: 'bold'
+            }}>
+              {totalSelections}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <main>
         <div className={styles.controlsWrapper}>
           <div className={styles.sortControls}>
@@ -342,6 +495,27 @@ export default function AdminVitrinClient({
             >
               Sadece Favoriler ({allPhotos.filter(p => p.isAdminFavorite).length})
             </button>
+            <button
+              className={`${styles.viewBtn} ${filterMode === 'selected' ? styles.activeViewBtn : ''}`}
+              onClick={() => setFilterMode('selected')}
+            >
+              Seçilenler ({allPhotos.filter(p => !!p.selectedBy).length})
+            </button>
+
+            <span style={{ width: '1rem' }}></span>
+
+            <button 
+              className={`${styles.viewBtn} ${sortMode === 'newest' ? styles.activeViewBtn : ''}`}
+              onClick={() => setSortMode('newest')}
+            >
+               En Yeni
+            </button>
+            <button 
+              className={`${styles.viewBtn} ${sortMode === 'popular' ? styles.activeViewBtn : ''}`}
+              onClick={() => setSortMode('popular')}
+            >
+               En Beğenilen
+            </button>
           </div>
         </div>
 
@@ -353,6 +527,7 @@ export default function AdminVitrinClient({
               onDelete={handleDeletePhoto}
               onToggleHide={handleToggleHide}
               onToggleFavorite={handleToggleFavorite}
+              onClearSelection={handleClearSelection}
             />
           ))}
         </div>

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/mongodb';
 import Photo from '@/models/Photo';
 import Vote from '@/models/Vote';
-import '@/models/User';
+import User from '@/models/User';
 
 export default async function AdminPage() {
   const session = await getSession();
@@ -19,6 +19,7 @@ export default async function AdminPage() {
   try {
     const photos = await Photo.find({})
       .populate<{ userId: { name: string, username: string, _id: unknown } }>('userId', 'name username')
+      .populate('selectedBy', 'username')
       .sort({ createdAt: -1 });
 
     formattedPhotos = await Promise.all(photos.map(async (photo) => {
@@ -41,9 +42,12 @@ export default async function AdminPage() {
         hasVoted: !!vote,
         canDelete: true,
         isAdminFavorite: !!photo.isAdminFavorite,
-        isHidden: !!photo.isHidden
+        isHidden: !!photo.isHidden,
+        selectedBy: photo.selectedBy ? (photo.selectedBy as unknown as { _id: string })._id?.toString() : null,
+        selectedByUsername: photo.selectedBy ? (photo.selectedBy as unknown as { username: string }).username : null,
       };
     }));
+
   } catch (error) {
     console.error('Error fetching admin photos:', error);
     return (
@@ -53,9 +57,41 @@ export default async function AdminPage() {
     );
   }
 
+  type UserSelectionCount = {
+    id: string;
+    name: string;
+    username: string;
+    count: number;
+  };
+  let userSelectionCounts: UserSelectionCount[] = [];
+  let totalSelections = 0;
+
+  try {
+    const users = await User.find({ username: { $ne: 'admin' } }, '_id name username');
+    userSelectionCounts = await Promise.all(
+      users.map(async (u) => {
+        const count = await Photo.countDocuments({ selectedBy: u._id });
+        return {
+          id: u._id.toString(),
+          name: u.name,
+          username: u.username,
+          count
+        };
+      })
+    );
+    totalSelections = userSelectionCounts.reduce((acc, curr) => acc + curr.count, 0);
+  } catch (error) {
+    console.error('Error fetching user selection counts:', error);
+  }
+
   return (
     <main>
-      <AdminVitrinClient initialPhotos={formattedPhotos} user={session} />
+      <AdminVitrinClient 
+        initialPhotos={formattedPhotos} 
+        user={session} 
+        userSelectionCounts={userSelectionCounts}
+        totalSelections={totalSelections}
+      />
     </main>
   );
 }

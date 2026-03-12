@@ -23,10 +23,11 @@ interface PhotoCardProps {
   onToggleHide?: (id: string) => void;
   onToggleFavorite?: (id: string) => void;
   onToggleSelection?: (id: string) => void;
+  onClearSelection?: (id: string) => void;
   currentUserId?: string;
 }
 
-export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavorite, onToggleSelection, currentUserId }: PhotoCardProps) {
+export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavorite, onToggleSelection, onClearSelection, currentUserId }: PhotoCardProps) {
   const [voteCount, setVoteCount] = useState(photo.voteCount);
   const [hasVoted, setHasVoted] = useState(photo.hasVoted);
   const [isVoting, setIsVoting] = useState(false);
@@ -165,6 +166,21 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
                 {isSelectedByMe ? '✅' : isSelectedByOther ? '🔒' : '📌'}
               </button>
             )}
+            
+            {onClearSelection && photo.selectedBy && (
+              <button
+                className={styles.adminActionBtn}
+                onClick={() => onClearSelection(photo.id)}
+                title={`Seçimi Kaldır (${photo.selectedByUsername})`}
+                style={{ 
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: 'rgba(239, 68, 68, 0.4)',
+                  color: '#ef4444'
+                }}
+              >
+                ✖️
+              </button>
+            )}
 
             <button 
               className={`${styles.voteBtn} ${hasVoted ? styles.voted : ''}`}
@@ -177,6 +193,20 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
               <span className={styles.voteCount}>{voteCount}</span>
             </button>
           </div>
+          {photo.selectedBy && (
+            <div style={{
+              marginTop: '6px',
+              fontSize: '0.75rem',
+              color: '#4ade80',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontWeight: 500,
+            }}>
+              <span>📌</span>
+              <span>{photo.selectedByUsername} seçti</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

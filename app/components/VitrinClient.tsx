@@ -43,6 +43,7 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
   const [allPhotos, setAllPhotos] = useState<PhotoType[]>(initialPhotos);
   const [visibleCount, setVisibleCount] = useState(12);
   const [isLoading, setIsLoading] = useState(false);
+  const [filterBy, setFilterBy] = useState<'all' | 'myUploads'>('all');
 
   const [selectionCount, setSelectionCount] = useState(0);
   const [selectionQuota, setSelectionQuota] = useState(5);
@@ -79,8 +80,9 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
     });
   };
 
-  const visiblePhotos = allPhotos.slice(0, visibleCount);
-  const hasMore = visibleCount < allPhotos.length;
+  const filteredPhotos = allPhotos.filter(p => filterBy === 'myUploads' ? p.user.username === user.username : true);
+  const visiblePhotos = filteredPhotos.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredPhotos.length;
 
   const observer = useRef<IntersectionObserver | null>(null);
   const lastElementRef = useCallback((node: HTMLDivElement | null) => {
@@ -231,6 +233,19 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
           <>
             <div className={styles.controlsWrapper}>
               <div className={styles.sortControls}>
+                <button 
+                  className={`${styles.viewBtn} ${filterBy === 'all' ? styles.activeViewBtn : ''}`}
+                  onClick={() => { setFilterBy('all'); setVisibleCount(12); }}
+                >
+                  Tümü
+                </button>
+                <button 
+                  className={`${styles.viewBtn} ${filterBy === 'myUploads' ? styles.activeViewBtn : ''}`}
+                  onClick={() => { setFilterBy('myUploads'); setVisibleCount(12); }}
+                >
+                  Yüklediklerim
+                </button>
+                <span style={{ width: '1rem' }}></span>
                 <button 
                   className={`${styles.viewBtn} ${sortBy === 'newest' ? styles.activeViewBtn : ''}`}
                   onClick={() => handleSortChange('newest')}
