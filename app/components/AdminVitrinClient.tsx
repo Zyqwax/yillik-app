@@ -32,10 +32,11 @@ export default function AdminVitrinClient({
   user: UserType;
 }) {
   const [allPhotos, setAllPhotos] = useState<PhotoType[]>(initialPhotos);
-  const [filterMode, setFilterMode] = useState<'all' | 'visible' | 'hidden'>('all');
+  const [filterMode, setFilterMode] = useState<'all' | 'visible' | 'hidden' | 'favorites'>('all');
   const [uploadEnabled, setUploadEnabled] = useState<boolean | null>(null);
   const [deleteEnabled, setDeleteEnabled] = useState<boolean | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -70,12 +71,19 @@ export default function AdminVitrinClient({
     }
   };
 
-  const filteredPhotos = allPhotos.filter((photo) => {
-    if (filterMode === 'all') return true;
-    if (filterMode === 'visible') return !photo.isHidden;
-    if (filterMode === 'hidden') return photo.isHidden;
-    return true;
-  });
+  const filteredPhotos = [...allPhotos]
+    .filter((photo) => {
+      if (filterMode === 'all') return true;
+      if (filterMode === 'visible') return !photo.isHidden;
+      if (filterMode === 'hidden') return photo.isHidden;
+      if (filterMode === 'favorites') return photo.isAdminFavorite;
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.isAdminFavorite && !b.isAdminFavorite) return -1;
+      if (!a.isAdminFavorite && b.isAdminFavorite) return 1;
+      return 0; // maintain original order, which is by create date descending as queried in backend
+    });
 
   const handleDeletePhoto = (id: string) => {
     setAllPhotos((prev) => prev.filter((p) => p.id !== id));
@@ -108,6 +116,69 @@ export default function AdminVitrinClient({
       }
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const downloadIndividually = async (favorites: PhotoType[]) => {
+    for (let i = 0; i < favorites.length; i++) {
+        try {
+          const photo = favorites[i];
+          const response = await fetch(photo.url);
+          const blob = await response.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = blobUrl;
+          // Extract original extension or use jpg
+          const extMatch = photo.url.match(/\.([a-zA-Z0-9]+)(?:[\?#]|$)/);
+          const ext = extMatch ? extMatch[1] : 'jpg';
+          a.download = `favori_${i + 1}_${photo.id}.${ext}`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(blobUrl);
+          document.body.removeChild(a);
+          // Wait 300ms between downloads to avoid browser block
+          await new Promise(r => setTimeout(r, 300));
+        } catch (e) {
+          console.error('Bireysel indirme hatası:', e);
+        }
+    }
+  };
+
+  const handleDownloadFavorites = async () => {
+    const favorites = allPhotos.filter(p => p.isAdminFavorite);
+    if (favorites.length === 0) {
+      alert('İndirilecek favori fotoğraf bulunamadı.');
+      return;
+    }
+    
+    setIsDownloading(true);
+    try {
+      const res = await fetch('/api/admin/download-favorites');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          // Open the ZIP download URL
+          const a = document.createElement('a');
+          a.href = data.url;
+          a.download = 'yillik_favori_fotograflar.zip';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else {
+          // Fallback to individual
+          await downloadIndividually(favorites);
+        }
+      } else {
+        // Fallback to individual
+        await downloadIndividually(favorites);
+      }
+    } catch (error) {
+      console.error(error);
+      // Fallback
+      await downloadIndividually(favorites);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -195,6 +266,25 @@ export default function AdminVitrinClient({
               ? '🗑️ Silme: Açık'
               : '🗑️ Silme: Kapalı'}
           </button>
+
+          <button
+            disabled={isDownloading || allPhotos.filter(p => p.isAdminFavorite).length === 0}
+            onClick={handleDownloadFavorites}
+            style={{
+              padding: '0.5rem 1.1rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: (isDownloading || allPhotos.filter(p => p.isAdminFavorite).length === 0) ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              background: 'rgba(59,130,246,0.2)',
+              color: '#60a5fa',
+              transition: 'all 0.2s',
+              marginLeft: 'auto'
+            }}
+          >
+            {isDownloading ? '⏳ İndiriliyor...' : `📥 Favorileri İndir (${allPhotos.filter(p => p.isAdminFavorite).length})`}
+          </button>
         </div>
       </div>
 
@@ -205,19 +295,25 @@ export default function AdminVitrinClient({
               className={`${styles.viewBtn} ${filterMode === 'all' ? styles.activeViewBtn : ''}`}
               onClick={() => setFilterMode('all')}
             >
-              Hepsi
+              Hepsi ({allPhotos.length})
             </button>
             <button
               className={`${styles.viewBtn} ${filterMode === 'visible' ? styles.activeViewBtn : ''}`}
               onClick={() => setFilterMode('visible')}
             >
-              Sadece Görünürler
+              Sadece Görünürler ({allPhotos.filter(p => !p.isHidden).length})
             </button>
             <button
               className={`${styles.viewBtn} ${filterMode === 'hidden' ? styles.activeViewBtn : ''}`}
               onClick={() => setFilterMode('hidden')}
             >
-              Gizlenenler
+              Gizlenenler ({allPhotos.filter(p => p.isHidden).length})
+            </button>
+            <button
+              className={`${styles.viewBtn} ${filterMode === 'favorites' ? styles.activeViewBtn : ''}`}
+              onClick={() => setFilterMode('favorites')}
+            >
+              Sadece Favoriler ({allPhotos.filter(p => p.isAdminFavorite).length})
             </button>
           </div>
         </div>
