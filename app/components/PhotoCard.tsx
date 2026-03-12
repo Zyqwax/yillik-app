@@ -80,7 +80,7 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
   const cardStyle = isSelectedByMe 
     ? { border: '2px solid #4ade80', background: 'rgba(74, 222, 128, 0.1)' } 
     : isSelectedByOther 
-    ? { opacity: 0.6, border: '1px solid rgba(255,255,255,0.1)' } 
+    ? { border: '2px solid #ef4444', background: 'rgba(239, 68, 68, 0.1)', opacity: 0.8 } 
     : {};
 
   return (
@@ -156,9 +156,9 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
                 disabled={!!isSelectedByOther}
                 title={isSelectedByOther ? `Başkası Seçti (${photo.selectedByUsername})` : isSelectedByMe ? 'Seçimi İptal Et' : 'Fotoğrafı Seç'}
                 style={{ 
-                  background: isSelectedByMe ? 'rgba(74, 222, 128, 0.2)' : isSelectedByOther ? 'rgba(255,255,255,0.1)' : 'rgba(59, 130, 246, 0.1)',
-                  borderColor: isSelectedByMe ? 'rgba(74, 222, 128, 0.4)' : isSelectedByOther ? 'rgba(255,255,255,0.2)' : 'rgba(59, 130, 246, 0.2)',
-                  color: isSelectedByMe ? '#4ade80' : isSelectedByOther ? '#888' : '#60a5fa',
+                  background: isSelectedByMe ? 'rgba(74, 222, 128, 0.2)' : isSelectedByOther ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                  borderColor: isSelectedByMe ? 'rgba(74, 222, 128, 0.4)' : isSelectedByOther ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+                  color: isSelectedByMe ? '#4ade80' : isSelectedByOther ? '#ef4444' : '#60a5fa',
                   cursor: isSelectedByOther ? 'not-allowed' : 'pointer'
                 }}
               >
