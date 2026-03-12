@@ -75,7 +75,7 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
       <div className={styles.imageLink}>
         {photo.isAdminFavorite && (
           <div className={styles.adminBadge}>
-            🌟 Admin Seçimi
+            🌟
           </div>
         )}
         <div className={styles.imageWrapper}>
