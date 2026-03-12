@@ -12,6 +12,9 @@ type PhotoType = {
   voteCount: number;
   user: { name: string; username: string };
   hasVoted: boolean;
+  canDelete: boolean;
+  isAdminFavorite?: boolean;
+  isHidden?: boolean;
   createdAt?: string;
 };
 
@@ -59,6 +62,9 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
 
   const sortPhotosLocal = (photosList: PhotoType[], sortMode: 'popular' | 'newest') => {
     return [...photosList].sort((a, b) => {
+      if (a.isAdminFavorite && !b.isAdminFavorite) return -1;
+      if (!a.isAdminFavorite && b.isAdminFavorite) return 1;
+
       if (sortMode === 'popular') {
         return b.voteCount - a.voteCount;
       } else {
@@ -133,6 +139,7 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
         voteCount: 0,
         user: { name: user.name, username: user.username },
         hasVoted: false,
+        canDelete: true,
       }));
       const newAll = [...formattedPhotos, ...allPhotos];
       setAllPhotos(sortPhotosLocal(newAll, sortBy));
@@ -147,6 +154,10 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
     window.location.href = '/login';
   };
 
+  const handleDeletePhoto = (id: string) => {
+    setAllPhotos(prev => prev.filter(p => p.id !== id));
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -157,6 +168,11 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
         
         <div className={styles.actions}>
           <span className={styles.greeting}>Merhaba, <strong>{user.name}</strong></span>
+          {user.username === 'admin' && (
+            <button onClick={() => window.location.href = '/admin'} className={styles.uploadBtn} style={{ background: '#ff9800' }}>
+              👑 Admin Paneli
+            </button>
+          )}
           <button onClick={() => setIsUploadOpen(true)} className={styles.uploadBtn}>
             + Fotoğraf Yükle
           </button>
@@ -208,7 +224,7 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
             
             <div className={`${styles.grid} ${gridSize === 'small' ? styles.gridSmall : ''}`}>
               {visiblePhotos.map((photo) => (
-                <PhotoCard key={photo.id} photo={photo} />
+                <PhotoCard key={photo.id} photo={photo} onDelete={handleDeletePhoto} />
               ))}
             </div>
             

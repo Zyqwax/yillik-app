@@ -6,6 +6,8 @@ export interface IPhoto extends Document {
   userId: mongoose.Types.ObjectId;
   voteCount: number;
   isAnonymous?: boolean;
+  isHidden?: boolean;
+  isAdminFavorite?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +19,8 @@ const PhotoSchema = new Schema<IPhoto>(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     voteCount: { type: Number, default: 0 },
     isAnonymous: { type: Boolean, default: false },
+    isHidden: { type: Boolean, default: false },
+    isAdminFavorite: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

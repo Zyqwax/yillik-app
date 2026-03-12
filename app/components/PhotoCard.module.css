@@ -8,17 +8,20 @@
   flex-direction: column;
 }
 
-/* Desktop hover only */
-@media (hover: hover) and (pointer: fine) {
-  .card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 20px 40px -15px rgba(168, 85, 247, 0.35);
-    border-color: rgba(168, 85, 247, 0.25);
-  }
+/* Disabled hover animation requested by user */
 
-  .card:hover .image {
-    transform: scale(1.05);
-  }
+.adminBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 215, 0, 0.9);
+  color: #000;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .imageWrapper {
@@ -59,6 +62,12 @@
   justify-content: space-between;
   align-items: center;
   margin-top: auto;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .voteBtn {
@@ -107,6 +116,59 @@
 .voteCount {
   font-weight: 600;
   font-size: 0.875rem;
+}
+
+.voteCount {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.deleteBtn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 9999px;
+  padding: 0.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  color: #ef4444;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .deleteBtn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    transform: scale(1.05);
+  }
+}
+
+.deleteBtn:active {
+  transform: scale(0.97);
+}
+
+.adminActionBtn {
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.2);
+  border-radius: 9999px;
+  padding: 0.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  color: #ff9800;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .adminActionBtn:hover {
+    background: rgba(255, 152, 0, 0.2);
+    transform: scale(1.05);
+  }
+}
+
+.adminActionBtn:active {
+  transform: scale(0.97);
 }
 
 .uploaderInfo {

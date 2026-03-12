@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import Photo from '@/models/Photo';
 import Vote from '@/models/Vote';
 import Comment from '@/models/Comment';
+import Settings from '@/models/Settings';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -22,13 +23,20 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     await dbConnect();
     const { id } = await params;
 
+    // Silme ayarını kontrol et
+    let settings = await Settings.findOne();
+    if (!settings) settings = await Settings.create({ uploadEnabled: true, deleteEnabled: true });
+    if (!settings.deleteEnabled) {
+      return NextResponse.json({ message: 'Fotoğraf silme şu an kapalıdır.' }, { status: 403 });
+    }
+
     const photo = await Photo.findById(id);
 
     if (!photo) {
       return NextResponse.json({ message: 'Fotoğraf bulunamadı' }, { status: 404 });
     }
 
-    if (photo.userId.toString() !== session.userId) {
+    if (photo.userId.toString() !== session.userId && session.username !== 'admin') {
       return NextResponse.json({ message: 'Bu fotoğrafı silme yetkiniz yok' }, { status: 403 });
     }
 

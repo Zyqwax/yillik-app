@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import styles from './PhotoCard.module.css';
 import { CldImage } from 'next-cloudinary';
-import Link from 'next/link';
+
 
 interface PhotoCardProps {
   photo: {
@@ -13,10 +13,16 @@ interface PhotoCardProps {
     voteCount: number;
     user: { name: string; username: string };
     hasVoted: boolean;
+    canDelete: boolean;
+    isAdminFavorite?: boolean;
+    isHidden?: boolean;
   };
+  onDelete?: (id: string) => void;
+  onToggleHide?: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
 }
 
-export default function PhotoCard({ photo }: PhotoCardProps) {
+export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavorite }: PhotoCardProps) {
   const [voteCount, setVoteCount] = useState(photo.voteCount);
   const [hasVoted, setHasVoted] = useState(photo.hasVoted);
   const [isVoting, setIsVoting] = useState(false);
@@ -46,9 +52,32 @@ export default function PhotoCard({ photo }: PhotoCardProps) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm('Bu fotoğrafı silmek istediğinize emin misiniz?')) return;
+    
+    try {
+      const res = await fetch(`/api/photos/${photo.id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        if (onDelete) onDelete(photo.id);
+      } else {
+        alert('Fotoğraf silinirken bir hata oluştu.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Fotoğraf silinirken bir hata oluştu.');
+    }
+  };
+
   return (
     <div className={styles.card}>
-      <Link href={`/photo/${photo.id}`} className={styles.imageLink}>
+      <div className={styles.imageLink}>
+        {photo.isAdminFavorite && (
+          <div className={styles.adminBadge}>
+            🌟 Admin Seçimi
+          </div>
+        )}
         <div className={styles.imageWrapper}>
           <CldImage 
             src={photo.url} 
@@ -61,7 +90,7 @@ export default function PhotoCard({ photo }: PhotoCardProps) {
             quality="50"
           />
         </div>
-      </Link>
+      </div>
       
       <div className={styles.content}>
         {photo.caption && <p className={styles.caption}>{photo.caption}</p>}
@@ -76,16 +105,45 @@ export default function PhotoCard({ photo }: PhotoCardProps) {
             </span>
           </div>
 
-          <button 
-            className={`${styles.voteBtn} ${hasVoted ? styles.voted : ''}`}
-            onClick={toggleVote}
-            disabled={isVoting}
-          >
-            <span className={styles.heartIcon}>
-              {hasVoted ? '❤️' : '🤍'}
-            </span>
-            <span className={styles.voteCount}>{voteCount}</span>
-          </button>
+          <div className={styles.actionButtons}>
+            {photo.canDelete && (
+              <button 
+                className={styles.deleteBtn}
+                onClick={handleDelete}
+                title="Fotoğrafı Sil"
+              >
+                🗑️
+              </button>
+            )}
+            {onToggleHide && (
+              <button
+                className={styles.adminActionBtn}
+                onClick={() => onToggleHide(photo.id)}
+                title={photo.isHidden ? 'Göster' : 'Gizle'}
+              >
+                {photo.isHidden ? '👁️‍🗨️' : '👁️'}
+              </button>
+            )}
+            {onToggleFavorite && (
+              <button
+                className={styles.adminActionBtn}
+                onClick={() => onToggleFavorite(photo.id)}
+                title={photo.isAdminFavorite ? 'Favoriden Çıkar' : 'Admin Favorisi Yap'}
+              >
+                {photo.isAdminFavorite ? '❌' : '🌟'}
+              </button>
+            )}
+            <button 
+              className={`${styles.voteBtn} ${hasVoted ? styles.voted : ''}`}
+              onClick={toggleVote}
+              disabled={isVoting}
+            >
+              <span className={styles.heartIcon}>
+                {hasVoted ? '❤️' : '🤍'}
+              </span>
+              <span className={styles.voteCount}>{voteCount}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

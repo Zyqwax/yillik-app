@@ -1,25 +1,25 @@
-import VitrinClient from './components/VitrinClient';
+import AdminVitrinClient from '../components/AdminVitrinClient';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/mongodb';
 import Photo from '@/models/Photo';
 import Vote from '@/models/Vote';
-import '@/models/User'; // Ensure User model is registered
+import '@/models/User';
 
-export default async function Home() {
+export default async function AdminPage() {
   const session = await getSession();
   
-  if (!session) {
-    redirect('/login');
+  if (!session || session.username !== 'admin') {
+    redirect('/');
   }
 
   await dbConnect();
 
   let formattedPhotos = [];
   try {
-    const photos = await Photo.find({ isHidden: { $ne: true } })
+    const photos = await Photo.find({})
       .populate<{ userId: { name: string, username: string, _id: unknown } }>('userId', 'name username')
-      .sort({ isAdminFavorite: -1, voteCount: -1 });
+      .sort({ createdAt: -1 });
 
     formattedPhotos = await Promise.all(photos.map(async (photo) => {
       const vote = await Vote.findOne({
@@ -39,13 +39,13 @@ export default async function Home() {
               username: photo.userId.username
             },
         hasVoted: !!vote,
-        canDelete: session.userId === String(photo.userId._id) || session.username === 'admin',
+        canDelete: true,
         isAdminFavorite: !!photo.isAdminFavorite,
         isHidden: !!photo.isHidden
       };
     }));
   } catch (error) {
-    console.error('Error fetching photos:', error);
+    console.error('Error fetching admin photos:', error);
     return (
       <main>
         <div className="p-8 text-center text-red-500">Fotoğraflar yüklenirken bir hata oluştu.</div>
@@ -55,7 +55,7 @@ export default async function Home() {
 
   return (
     <main>
-      <VitrinClient initialPhotos={formattedPhotos} user={session} />
+      <AdminVitrinClient initialPhotos={formattedPhotos} user={session} />
     </main>
   );
 }

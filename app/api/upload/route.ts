@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { v2 as cloudinary } from 'cloudinary';
 import dbConnect from '@/lib/mongodb';
 import Photo from '@/models/Photo';
+import Settings from '@/models/Settings';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -18,6 +19,14 @@ export async function POST(request: NextRequest) {
 
   try {
     await dbConnect();
+
+    // Yükleme ayarını kontrol et
+    let settings = await Settings.findOne();
+    if (!settings) settings = await Settings.create({ uploadEnabled: true, deleteEnabled: true });
+    if (!settings.uploadEnabled) {
+      return NextResponse.json({ message: 'Fotoğraf yükleme şu an kapalıdır.' }, { status: 403 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const caption = formData.get('caption') as string;

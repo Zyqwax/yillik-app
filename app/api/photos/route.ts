@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
   try {
     await dbConnect();
     
-    const photos = await Photo.find({})
+    const query = session.username === 'admin' ? {} : { isHidden: { $ne: true } };
+
+    const photos = await Photo.find(query)
       .populate<{ userId: { name: string, username: string } }>('userId', 'name username')
       .sort(sortQuery);
 
@@ -38,7 +40,9 @@ export async function GET(req: NextRequest) {
         user: photo.isAnonymous 
           ? { name: 'Anonim Kullanıcı', username: 'anonim' } 
           : { name: photo.userId.name, username: photo.userId.username },
-        hasVoted: !!vote
+        hasVoted: !!vote,
+        isAdminFavorite: !!photo.isAdminFavorite,
+        isHidden: !!photo.isHidden
       };
     }));
 
