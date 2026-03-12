@@ -23,7 +23,8 @@ export async function GET(req: NextRequest) {
     const query = session.username === 'admin' ? {} : { isHidden: { $ne: true } };
 
     const photos = await Photo.find(query)
-      .populate<{ userId: { name: string, username: string } }>('userId', 'name username')
+      .populate<{ userId: { name: string, username: string }, selectedBy?: { name: string, username: string } }>('userId', 'name username')
+      .populate('selectedBy', 'name username')
       .sort(sortQuery);
 
     const formattedPhotos = await Promise.all(photos.map(async (photo) => {
@@ -42,7 +43,9 @@ export async function GET(req: NextRequest) {
           : { name: photo.userId.name, username: photo.userId.username },
         hasVoted: !!vote,
         isAdminFavorite: !!photo.isAdminFavorite,
-        isHidden: !!photo.isHidden
+        isHidden: !!photo.isHidden,
+        selectedBy: photo.selectedBy ? (photo.selectedBy as unknown as { _id: string })._id?.toString() : null,
+        selectedByUsername: photo.selectedBy ? (photo.selectedBy as unknown as { username: string }).username : null,
       };
     }));
 

@@ -16,13 +16,17 @@ interface PhotoCardProps {
     canDelete: boolean;
     isAdminFavorite?: boolean;
     isHidden?: boolean;
+    selectedBy?: string | null;
+    selectedByUsername?: string | null;
   };
   onDelete?: (id: string) => void;
   onToggleHide?: (id: string) => void;
   onToggleFavorite?: (id: string) => void;
+  onToggleSelection?: (id: string) => void;
+  currentUserId?: string;
 }
 
-export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavorite }: PhotoCardProps) {
+export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavorite, onToggleSelection, currentUserId }: PhotoCardProps) {
   const [voteCount, setVoteCount] = useState(photo.voteCount);
   const [hasVoted, setHasVoted] = useState(photo.hasVoted);
   const [isVoting, setIsVoting] = useState(false);
@@ -70,8 +74,17 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
     }
   };
 
+  const isSelectedByMe = photo.selectedBy === currentUserId;
+  const isSelectedByOther = photo.selectedBy && photo.selectedBy !== currentUserId;
+
+  const cardStyle = isSelectedByMe 
+    ? { border: '2px solid #4ade80', background: 'rgba(74, 222, 128, 0.1)' } 
+    : isSelectedByOther 
+    ? { opacity: 0.6, border: '1px solid rgba(255,255,255,0.1)' } 
+    : {};
+
   return (
-    <div className={styles.card}>
+    <div className={styles.card} style={cardStyle}>
       <div className={styles.imageWrapper}>
         <CldImage 
           src={photo.url} 
@@ -135,6 +148,24 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
                 {photo.isAdminFavorite ? '🌟' : '⭐'}
               </button>
             )}
+            
+            {onToggleSelection && (
+              <button
+                className={styles.adminActionBtn}
+                onClick={() => onToggleSelection(photo.id)}
+                disabled={!!isSelectedByOther}
+                title={isSelectedByOther ? `Başkası Seçti (${photo.selectedByUsername})` : isSelectedByMe ? 'Seçimi İptal Et' : 'Fotoğrafı Seç'}
+                style={{ 
+                  background: isSelectedByMe ? 'rgba(74, 222, 128, 0.2)' : isSelectedByOther ? 'rgba(255,255,255,0.1)' : 'rgba(59, 130, 246, 0.1)',
+                  borderColor: isSelectedByMe ? 'rgba(74, 222, 128, 0.4)' : isSelectedByOther ? 'rgba(255,255,255,0.2)' : 'rgba(59, 130, 246, 0.2)',
+                  color: isSelectedByMe ? '#4ade80' : isSelectedByOther ? '#888' : '#60a5fa',
+                  cursor: isSelectedByOther ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isSelectedByMe ? '✅' : isSelectedByOther ? '🔒' : '📌'}
+              </button>
+            )}
+
             <button 
               className={`${styles.voteBtn} ${hasVoted ? styles.voted : ''}`}
               onClick={toggleVote}

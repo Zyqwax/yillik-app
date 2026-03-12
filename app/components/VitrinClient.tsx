@@ -16,6 +16,8 @@ type PhotoType = {
   isAdminFavorite?: boolean;
   isHidden?: boolean;
   createdAt?: string;
+  selectedBy?: string | null;
+  selectedByUsername?: string | null;
 };
 
 interface UserType {
@@ -41,6 +43,9 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
   const [allPhotos, setAllPhotos] = useState<PhotoType[]>(initialPhotos);
   const [visibleCount, setVisibleCount] = useState(12);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [selectionCount, setSelectionCount] = useState(0);
+  const [selectionQuota, setSelectionQuota] = useState(5);
 
   const fetchPhotos = async () => {
     setIsLoading(true);
@@ -96,6 +101,14 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
     if (initialPhotos && initialPhotos.length > 0) {
       setAllPhotos(sortPhotosLocal(initialPhotos, sortBy));
     }
+
+    fetch('/api/user/selection-status')
+      .then(res => res.json())
+      .then(data => {
+        if(data.selectedCount !== undefined) setSelectionCount(data.selectedCount);
+        if(data.quota !== undefined) setSelectionQuota(data.quota);
+      })
+      .catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -158,12 +171,38 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
     setAllPhotos(prev => prev.filter(p => p.id !== id));
   };
 
+  const handleToggleSelection = async (id: string) => {
+    try {
+      const res = await fetch(`/api/photos/${id}/select`, { method: 'POST' });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setAllPhotos(prev => prev.map(p => 
+          p.id === id ? { ...p, selectedBy: data.selectedBy, selectedByUsername: data.selectedByUsername } : p
+        ));
+        
+        if (data.selectedBy) {
+           setSelectionCount(c => c + 1);
+        } else {
+           setSelectionCount(c => c - 1);
+        }
+      } else {
+        alert(data.message || 'Bir hata oluştu.');
+      }
+    } catch (error) {
+       console.error(error);
+       alert('Ayarlar kaydedilirken bir hata oluştu.');
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.logoInfo}>
           <div className={styles.logo}>📸 Şamata</div>
-          <p className={styles.subtitle}>En İyiler Vitrini • {allPhotos.length} Fotoğraf</p>
+          <p className={styles.subtitle}>
+            En İyiler Vitrini • {allPhotos.length} Fotoğraf • Seçimin: {selectionCount}/{selectionQuota}
+          </p>
         </div>
         
         <div className={styles.actions}>
@@ -224,7 +263,13 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
             
             <div className={`${styles.grid} ${gridSize === 'small' ? styles.gridSmall : ''}`}>
               {visiblePhotos.map((photo) => (
-                <PhotoCard key={photo.id} photo={photo} onDelete={handleDeletePhoto} />
+                <PhotoCard 
+                  key={photo.id} 
+                  photo={photo} 
+                  onDelete={handleDeletePhoto} 
+                  onToggleSelection={handleToggleSelection} 
+                  currentUserId={user.userId} 
+                />
               ))}
             </div>
             

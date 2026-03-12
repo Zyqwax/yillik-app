@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { v2 as cloudinary } from 'cloudinary';
 import dbConnect from '@/lib/mongodb';
@@ -10,7 +10,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   const session = await getSession();
   if (!session || session.username !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim' }, { status: 401 });

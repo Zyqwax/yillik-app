@@ -35,6 +35,7 @@ export default function AdminVitrinClient({
   const [filterMode, setFilterMode] = useState<'all' | 'visible' | 'hidden' | 'favorites'>('all');
   const [uploadEnabled, setUploadEnabled] = useState<boolean | null>(null);
   const [deleteEnabled, setDeleteEnabled] = useState<boolean | null>(null);
+  const [selectionQuota, setSelectionQuota] = useState<number>(5);
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -44,25 +45,27 @@ export default function AdminVitrinClient({
       .then((data) => {
         setUploadEnabled(data.uploadEnabled);
         setDeleteEnabled(data.deleteEnabled);
+        setSelectionQuota(data.selectionQuota ?? 5);
       })
       .catch(console.error);
   }, []);
 
   const toggleSetting = async (
-    key: 'uploadEnabled' | 'deleteEnabled',
-    current: boolean
+    key: 'uploadEnabled' | 'deleteEnabled' | 'selectionQuota',
+    value: boolean | number
   ) => {
     setSettingsLoading(true);
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [key]: !current }),
+        body: JSON.stringify({ [key]: value }),
       });
       if (res.ok) {
         const data = await res.json();
         setUploadEnabled(data.uploadEnabled);
         setDeleteEnabled(data.deleteEnabled);
+        setSelectionQuota(data.selectionQuota ?? 5);
       }
     } catch (error) {
       console.error(error);
@@ -221,7 +224,7 @@ export default function AdminVitrinClient({
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             disabled={settingsLoading || uploadEnabled === null}
-            onClick={() => toggleSetting('uploadEnabled', uploadEnabled!)}
+            onClick={() => toggleSetting('uploadEnabled', !uploadEnabled)}
             style={{
               padding: '0.5rem 1.1rem',
               borderRadius: '8px',
@@ -245,7 +248,7 @@ export default function AdminVitrinClient({
 
           <button
             disabled={settingsLoading || deleteEnabled === null}
-            onClick={() => toggleSetting('deleteEnabled', deleteEnabled!)}
+            onClick={() => toggleSetting('deleteEnabled', !deleteEnabled)}
             style={{
               padding: '0.5rem 1.1rem',
               borderRadius: '8px',
@@ -266,6 +269,30 @@ export default function AdminVitrinClient({
               ? '🗑️ Silme: Açık'
               : '🗑️ Silme: Kapalı'}
           </button>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '1rem' }}>
+             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+               Seçim Kotası:
+             </label>
+             <input
+               type="number"
+               min="1"
+               max="50"
+               value={selectionQuota}
+               onChange={(e) => setSelectionQuota(Number(e.target.value))}
+               onBlur={() => toggleSetting('selectionQuota', selectionQuota)}
+               disabled={settingsLoading || uploadEnabled === null}
+               style={{
+                 padding: '0.4rem',
+                 borderRadius: '6px',
+                 border: '1px solid rgba(255,255,255,0.2)',
+                 background: 'rgba(0,0,0,0.2)',
+                 color: 'white',
+                 width: '60px',
+                 textAlign: 'center'
+               }}
+             />
+          </div>
 
           <button
             disabled={isDownloading || allPhotos.filter(p => p.isAdminFavorite).length === 0}

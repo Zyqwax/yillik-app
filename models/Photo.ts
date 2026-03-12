@@ -8,6 +8,7 @@ export interface IPhoto extends Document {
   isAnonymous?: boolean;
   isHidden?: boolean;
   isAdminFavorite?: boolean;
+  selectedBy?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +22,7 @@ const PhotoSchema = new Schema<IPhoto>(
     isAnonymous: { type: Boolean, default: false },
     isHidden: { type: Boolean, default: false },
     isAdminFavorite: { type: Boolean, default: false },
+    selectedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true }
 );
