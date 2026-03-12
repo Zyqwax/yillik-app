@@ -43,7 +43,7 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
   const [allPhotos, setAllPhotos] = useState<PhotoType[]>(initialPhotos);
   const [visibleCount, setVisibleCount] = useState(12);
   const [isLoading, setIsLoading] = useState(false);
-  const [filterBy, setFilterBy] = useState<'all' | 'myUploads'>('all');
+  const [filterBy, setFilterBy] = useState<'all' | 'myUploads' | 'mySelections'>('all');
 
   const [selectionCount, setSelectionCount] = useState(0);
   const [selectionQuota, setSelectionQuota] = useState(5);
@@ -80,7 +80,11 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
     });
   };
 
-  const filteredPhotos = allPhotos.filter(p => filterBy === 'myUploads' ? p.user.username === user.username : true);
+  const filteredPhotos = allPhotos.filter(p => {
+    if (filterBy === 'myUploads') return p.user.username === user.username;
+    if (filterBy === 'mySelections') return p.selectedBy === user.userId;
+    return true;
+  });
   const visiblePhotos = filteredPhotos.slice(0, visibleCount);
   const hasMore = visibleCount < filteredPhotos.length;
 
@@ -244,6 +248,12 @@ export default function VitrinClient({ initialPhotos, user }: { initialPhotos: P
                   onClick={() => { setFilterBy('myUploads'); setVisibleCount(12); }}
                 >
                   Yüklediklerim
+                </button>
+                <button 
+                  className={`${styles.viewBtn} ${filterBy === 'mySelections' ? styles.activeViewBtn : ''}`}
+                  onClick={() => { setFilterBy('mySelections'); setVisibleCount(12); }}
+                >
+                  Seçtiklerim
                 </button>
                 <span style={{ width: '1rem' }}></span>
                 <button 

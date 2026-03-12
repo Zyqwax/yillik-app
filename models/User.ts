@@ -4,6 +4,7 @@ export interface IUser extends Document {
   username: string;
   password: string;
   name: string;
+  selectionQuota?: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,6 +14,7 @@ const UserSchema = new Schema<IUser>(
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     name: { type: String, required: true },
+    selectionQuota: { type: Number, default: null },
   },
   { timestamps: true }
 );

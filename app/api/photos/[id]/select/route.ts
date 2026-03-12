@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import Photo from '@/models/Photo';
 import Settings from '@/models/Settings';
+import User from '@/models/User';
 import mongoose from 'mongoose';
 
 export async function POST(
@@ -22,9 +23,12 @@ export async function POST(
   try {
     await dbConnect();
 
-    // 1. Ayarları getir, kotayı al
+    // 1. Global ayarları ve kişiye özel kotayı al
     const settings = await Settings.findOne();
-    const selectionQuota = settings?.selectionQuota ?? 5;
+    const globalQuota = settings?.selectionQuota ?? 5;
+
+    const currentUser = await User.findById(session.userId);
+    const selectionQuota = currentUser?.selectionQuota ?? globalQuota;
 
     // 2. Fotoğrafı bul
     const photo = await Photo.findById(id);
