@@ -72,24 +72,22 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
 
   return (
     <div className={styles.card}>
-      <div className={styles.imageLink}>
+      <div className={styles.imageWrapper}>
+        <CldImage 
+          src={photo.url} 
+          alt={photo.caption || "Fotoğraf"} 
+          fill 
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className={styles.image} 
+          style={{ objectFit: 'cover' }}
+          format="auto"
+          quality="50"
+        />
         {photo.isAdminFavorite && (
           <div className={styles.adminBadge}>
             🌟
           </div>
         )}
-        <div className={styles.imageWrapper}>
-          <CldImage 
-            src={photo.url} 
-            alt={photo.caption || "Fotoğraf"} 
-            fill 
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className={styles.image} 
-            style={{ objectFit: 'cover' }}
-            format="auto"
-            quality="50"
-          />
-        </div>
       </div>
       
       <div className={styles.content}>
@@ -129,8 +127,12 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
                 className={styles.adminActionBtn}
                 onClick={() => onToggleFavorite(photo.id)}
                 title={photo.isAdminFavorite ? 'Favoriden Çıkar' : 'Admin Favorisi Yap'}
+                style={{ 
+                  background: photo.isAdminFavorite ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 152, 0, 0.1)',
+                  borderColor: photo.isAdminFavorite ? 'rgba(255, 215, 0, 0.4)' : 'rgba(255, 152, 0, 0.2)'
+                }}
               >
-                {photo.isAdminFavorite ? '❌' : '🌟'}
+                {photo.isAdminFavorite ? '🌟' : '⭐'}
               </button>
             )}
             <button 
