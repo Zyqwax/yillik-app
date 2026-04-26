@@ -1,8 +1,10 @@
 {
+  "id": "/",
   "name": "12-A Galerisi",
   "short_name": "12-A Galeri",
-  "description": "Mwzun sınıfın hatıralarını yükleyeceği ve paylaşacağı bir site",
+  "description": "Mezun sınıfın hatıralarını yükleyeceği ve paylaşacağı bir site",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0d0d1a",
   "theme_color": "#7c3aed",
@@ -38,13 +40,25 @@
       "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [],
