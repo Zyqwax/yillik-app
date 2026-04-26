@@ -10,7 +10,7 @@ export async function POST(
   const resolvedParams = await params;
   const session = await getSession();
   
-  if (!session || session.username !== 'admin') {
+  if (!session || session.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim' }, { status: 403 });
   }
 

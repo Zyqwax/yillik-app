@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ username }).lean();
 
     if (!user) {
       return NextResponse.json(
@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await setSession(user._id.toString(), user.username, user.name);
+    await setSession(user._id.toString(), user.username, user.name, user.role);
 
-    return NextResponse.json({ message: 'Giriş başarılı.', user: { id: user._id.toString(), username: user.username, name: user.name } });
+    return NextResponse.json({ message: 'Giriş başarılı.', user: { id: user._id.toString(), username: user.username, name: user.name, role: user.role } });
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

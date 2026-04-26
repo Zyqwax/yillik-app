@@ -6,6 +6,17 @@ import Photo from '@/models/Photo';
 import Vote from '@/models/Vote';
 import '@/models/User'; // Ensure User model is registered
 
+type LeanPhoto = {
+  _id: unknown;
+  url: string;
+  caption: string | null;
+  userId: { _id: unknown; name: string; username: string };
+  voteCount: number;
+  isAnonymous?: boolean;
+  isHidden?: boolean;
+  createdAt: Date;
+};
+
 export default async function Home() {
   const session = await getSession();
   
@@ -17,21 +28,19 @@ export default async function Home() {
 
   let formattedPhotos = [];
   try {
-    const photos = await Photo.find({ isHidden: { $ne: true } })
-      .populate<{ userId: { name: string, username: string, _id: unknown }, selectedBy?: { username: string, _id: unknown } }>('userId', 'name username')
-      .populate('selectedBy', 'username')
-      .sort({ isAdminFavorite: -1, voteCount: -1 });
+    const photos = (await Photo.find({ isHidden: { $ne: true } })
+      .populate('userId', 'name username')
+      .sort({ voteCount: -1 })
+      .lean()) as LeanPhoto[];
 
-    formattedPhotos = await Promise.all(photos.map(async (photo) => {
-      const vote = await Vote.findOne({
-        userId: session.userId,
-        photoId: photo._id
-      });
+    const userVotes = await Vote.find({ userId: session.userId }).select('photoId').lean();
+    const userVotedPhotoIds = new Set(userVotes.map(v => v.photoId.toString()));
 
+    formattedPhotos = photos.map((photo) => {
       return {
-        id: (photo._id as string).toString(),
+        id: String(photo._id),
         url: photo.url,
-        caption: photo.caption,
+        caption: photo.caption ?? null,
         voteCount: photo.voteCount,
         user: photo.isAnonymous
           ? { name: 'Anonim Kullanıcı', username: 'anonim' }
@@ -39,14 +48,11 @@ export default async function Home() {
               name: photo.userId.name,
               username: photo.userId.username
             },
-        hasVoted: !!vote,
-        canDelete: session.userId === String(photo.userId._id) || session.username === 'admin',
-        isAdminFavorite: !!photo.isAdminFavorite,
+        hasVoted: userVotedPhotoIds.has(String(photo._id)),
+        canDelete: session.userId === String(photo.userId._id) || session.role === 'admin',
         isHidden: !!photo.isHidden,
-        selectedBy: photo.selectedBy ? (photo.selectedBy as unknown as { _id: string })._id?.toString() : null,
-        selectedByUsername: photo.selectedBy ? (photo.selectedBy as unknown as { username: string }).username : null,
       };
-    }));
+    });
   } catch (error) {
     console.error('Error fetching photos:', error);
     return (

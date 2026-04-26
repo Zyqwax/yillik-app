@@ -1,4 +1,4 @@
-import AdminVitrinClient from '../components/AdminVitrinClient';
+import ProfileClient from '../components/ProfileClient';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/mongodb';
@@ -16,18 +16,30 @@ type LeanPhoto = {
   createdAt: Date;
 };
 
-export default async function AdminPage() {
+type MappedPhoto = {
+  id: string;
+  url: string;
+  caption: string | null;
+  voteCount: number;
+  user: { name: string; username: string };
+  hasVoted: boolean;
+  canDelete: boolean;
+  isHidden: boolean;
+  createdAt?: string;
+};
+
+export default async function ProfilePage() {
   const session = await getSession();
   
-  if (!session || session.role !== 'admin') {
-    redirect('/');
+  if (!session) {
+    redirect('/login');
   }
 
   await dbConnect();
 
-  let formattedPhotos = [];
+  let userPhotos: MappedPhoto[] = [];
   try {
-    const photos = (await Photo.find({})
+    const photos = (await Photo.find({ userId: session.userId })
       .populate('userId', 'name username')
       .sort({ createdAt: -1 })
       .lean()) as LeanPhoto[];
@@ -35,7 +47,7 @@ export default async function AdminPage() {
     const userVotes = await Vote.find({ userId: session.userId }).select('photoId').lean();
     const userVotedPhotoIds = new Set(userVotes.map(v => v.photoId.toString()));
 
-    formattedPhotos = photos.map((photo) => {
+    userPhotos = photos.map((photo) => {
       return {
         id: String(photo._id),
         url: photo.url,
@@ -50,26 +62,16 @@ export default async function AdminPage() {
         hasVoted: userVotedPhotoIds.has(String(photo._id)),
         canDelete: true,
         isHidden: !!photo.isHidden,
+        createdAt: photo.createdAt ? new Date(photo.createdAt).toISOString() : undefined,
       };
     });
-
   } catch (error) {
-    console.error('Error fetching admin photos:', error);
-    return (
-      <main>
-        <div className="p-8 text-center text-red-500">Fotoğraflar yüklenirken bir hata oluştu.</div>
-      </main>
-    );
+    console.error('Error fetching user photos:', error);
   }
-
-
 
   return (
     <main>
-      <AdminVitrinClient 
-        initialPhotos={formattedPhotos} 
-        user={session} 
-      />
+      <ProfileClient userPhotos={userPhotos} user={session} />
     </main>
   );
 }

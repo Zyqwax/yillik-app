@@ -16,4 +16,7 @@ const CommentSchema = new Schema<IComment>(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+// Index for query optimization
+CommentSchema.index({ photoId: 1, createdAt: 1 });
+
 export default mongoose.models.Comment || mongoose.model<IComment>('Comment', CommentSchema);

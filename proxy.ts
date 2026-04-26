@@ -5,7 +5,7 @@ import { decrypt } from '@/lib/auth';
 
 const COOKIE_NAME = 'yillik_foto_session';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPublicPath = path === '/login' || path.startsWith('/api/auth');
 

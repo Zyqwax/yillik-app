@@ -18,14 +18,13 @@ export async function GET() {
   return NextResponse.json({
     uploadEnabled: settings.uploadEnabled,
     deleteEnabled: settings.deleteEnabled,
-    selectionQuota: settings.selectionQuota ?? 5,
   });
 }
 
 // POST — ayarları güncelle (sadece admin)
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session || session.username !== 'admin') {
+  if (!session || session.role !== 'admin') {
     return NextResponse.json({ message: 'Yetkisiz erişim' }, { status: 403 });
   }
 
@@ -39,14 +38,10 @@ export async function POST(request: NextRequest) {
   if (typeof body.deleteEnabled === 'boolean') {
     settings.deleteEnabled = body.deleteEnabled;
   }
-  if (typeof body.selectionQuota === 'number') {
-    settings.selectionQuota = body.selectionQuota;
-  }
   await settings.save();
 
   return NextResponse.json({
     uploadEnabled: settings.uploadEnabled,
     deleteEnabled: settings.deleteEnabled,
-    selectionQuota: settings.selectionQuota,
   });
 }

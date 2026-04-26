@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const userId = session.userId;
 
     // Check if vote already exists
-    const existingVote = await Vote.findOne({ userId, photoId });
+    const existingVote = await Vote.findOne({ userId, photoId }).lean();
 
     if (existingVote) {
       // Remove vote (toggle off)

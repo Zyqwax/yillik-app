@@ -30,13 +30,13 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
       return NextResponse.json({ message: 'Fotoğraf silme şu an kapalıdır.' }, { status: 403 });
     }
 
-    const photo = await Photo.findById(id);
+    const photo = await Photo.findById(id).lean();
 
     if (!photo) {
       return NextResponse.json({ message: 'Fotoğraf bulunamadı' }, { status: 404 });
     }
 
-    if (photo.userId.toString() !== session.userId && session.username !== 'admin') {
+    if (photo.userId.toString() !== session.userId && session.role !== 'admin') {
       return NextResponse.json({ message: 'Bu fotoğrafı silme yetkiniz yok' }, { status: 403 });
     }
 

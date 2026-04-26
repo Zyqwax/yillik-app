@@ -4,7 +4,6 @@ import { useState } from 'react';
 import styles from './PhotoCard.module.css';
 import { CldImage } from 'next-cloudinary';
 
-
 interface PhotoCardProps {
   photo: {
     id: string;
@@ -14,37 +13,30 @@ interface PhotoCardProps {
     user: { name: string; username: string };
     hasVoted: boolean;
     canDelete: boolean;
-    isAdminFavorite?: boolean;
+
     isHidden?: boolean;
-    selectedBy?: string | null;
-    selectedByUsername?: string | null;
   };
   onDelete?: (id: string) => void;
   onToggleHide?: (id: string) => void;
-  onToggleFavorite?: (id: string) => void;
-  onToggleSelection?: (id: string) => void;
-  onClearSelection?: (id: string) => void;
-  currentUserId?: string;
+  onClick?: () => void;
 }
 
-export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavorite, onToggleSelection, onClearSelection, currentUserId }: PhotoCardProps) {
+export default function PhotoCard({ photo, onDelete, onToggleHide, onClick }: PhotoCardProps) {
   const [voteCount, setVoteCount] = useState(photo.voteCount);
   const [hasVoted, setHasVoted] = useState(photo.hasVoted);
   const [isVoting, setIsVoting] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
-  const toggleVote = async () => {
+  const toggleVote = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isVoting) return;
     setIsVoting(true);
-
     try {
       const res = await fetch('/api/vote', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoId: photo.id }),
       });
-
       if (res.ok) {
         const data = await res.json();
         setHasVoted(data.voted);
@@ -57,13 +49,11 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!confirm('Bu fotoğrafı silmek istediğinize emin misiniz?')) return;
-    
     try {
-      const res = await fetch(`/api/photos/${photo.id}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(`/api/photos/${photo.id}`, { method: 'DELETE' });
       if (res.ok) {
         if (onDelete) onDelete(photo.id);
       } else {
@@ -75,139 +65,75 @@ export default function PhotoCard({ photo, onDelete, onToggleHide, onToggleFavor
     }
   };
 
-  const isSelectedByMe = photo.selectedBy === currentUserId;
-  const isSelectedByOther = photo.selectedBy && photo.selectedBy !== currentUserId;
-
-  const cardStyle = isSelectedByMe 
-    ? { border: '2px solid #4ade80', background: 'rgba(74, 222, 128, 0.1)' } 
-    : isSelectedByOther 
-    ? { border: '2px solid #ef4444', background: 'rgba(239, 68, 68, 0.1)', opacity: 0.8 } 
-    : {};
+  const displayName = photo.user.name === 'Anonim Kullanıcı' ? 'Anonim' : photo.user.name;
+  const avatarLetter = photo.user.name === 'Anonim Kullanıcı' ? 'A' : photo.user.name.charAt(0).toUpperCase();
+  const isAdmin = !!(onToggleHide || photo.canDelete);
 
   return (
-    <div className={styles.card} style={cardStyle}>
+    <div 
+      className={`${styles.card} ${!isImageLoaded ? styles.skeletonPulse : ''}`}
+      onClick={onClick}
+    >
+      {/* Fotoğraf */}
       <div className={styles.imageWrapper}>
-        <CldImage 
-          src={photo.url} 
-          alt={photo.caption || "Fotoğraf"} 
-          fill 
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={styles.image} 
-          style={{ objectFit: 'cover' }}
+        <CldImage
+          src={photo.url}
+          alt={photo.caption || 'Fotoğraf'}
+          width={300}
+          height={300}
+          crop="fill"
+          gravity="auto"
+          className={styles.image}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           format="auto"
-          quality="50"
+          quality="auto:eco"
+          onLoad={() => setIsImageLoaded(true)}
         />
-        {photo.isAdminFavorite && (
-          <div className={styles.adminBadge}>
-            🌟
-          </div>
-        )}
       </div>
-      
-      <div className={styles.content}>
-        {photo.caption && <p className={styles.caption}>{photo.caption}</p>}
-        
-        <div className={styles.actions}>
-          <div className={styles.uploaderInfo}>
-            <div className={styles.avatar}>
-               {photo.user.name === 'Anonim Kullanıcı' ? 'A' : photo.user.name.charAt(0).toUpperCase()}
-            </div>
-            <span className={styles.uploaderName} title={photo.user.name}>
-              {photo.user.name === 'Anonim Kullanıcı' ? 'Anonim' : photo.user.name}
-            </span>
-          </div>
 
-          <div className={styles.actionButtons}>
-            {photo.canDelete && (
-              <button 
-                className={styles.deleteBtn}
-                onClick={handleDelete}
-                title="Fotoğrafı Sil"
-              >
-                🗑️
-              </button>
-            )}
-            {onToggleHide && (
-              <button
-                className={styles.adminActionBtn}
-                onClick={() => onToggleHide(photo.id)}
-                title={photo.isHidden ? 'Göster' : 'Gizle'}
-              >
-                {photo.isHidden ? '👁️‍🗨️' : '👁️'}
-              </button>
-            )}
-            {onToggleFavorite && (
-              <button
-                className={styles.adminActionBtn}
-                onClick={() => onToggleFavorite(photo.id)}
-                title={photo.isAdminFavorite ? 'Favoriden Çıkar' : 'Admin Favorisi Yap'}
-                style={{ 
-                  background: photo.isAdminFavorite ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255, 152, 0, 0.1)',
-                  borderColor: photo.isAdminFavorite ? 'rgba(255, 215, 0, 0.4)' : 'rgba(255, 152, 0, 0.2)'
-                }}
-              >
-                {photo.isAdminFavorite ? '🌟' : '⭐'}
-              </button>
-            )}
-            
-            {onToggleSelection && (
-              <button
-                className={styles.adminActionBtn}
-                onClick={() => onToggleSelection(photo.id)}
-                disabled={!!isSelectedByOther}
-                title={isSelectedByOther ? `Başkası Seçti (${photo.selectedByUsername})` : isSelectedByMe ? 'Seçimi İptal Et' : 'Fotoğrafı Seç'}
-                style={{ 
-                  background: isSelectedByMe ? 'rgba(74, 222, 128, 0.2)' : isSelectedByOther ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                  borderColor: isSelectedByMe ? 'rgba(74, 222, 128, 0.4)' : isSelectedByOther ? 'rgba(239, 68, 68, 0.2)' : 'rgba(59, 130, 246, 0.2)',
-                  color: isSelectedByMe ? '#4ade80' : isSelectedByOther ? '#ef4444' : '#60a5fa',
-                  cursor: isSelectedByOther ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {isSelectedByMe ? '✅' : isSelectedByOther ? '🔒' : '📌'}
-              </button>
-            )}
-            
-            {onClearSelection && photo.selectedBy && (
-              <button
-                className={styles.adminActionBtn}
-                onClick={() => onClearSelection(photo.id)}
-                title={`Seçimi Kaldır (${photo.selectedByUsername})`}
-                style={{ 
-                  background: 'rgba(239, 68, 68, 0.2)',
-                  borderColor: 'rgba(239, 68, 68, 0.4)',
-                  color: '#ef4444'
-                }}
-              >
-                ✖️
-              </button>
-            )}
 
-            <button 
-              className={`${styles.voteBtn} ${hasVoted ? styles.voted : ''}`}
-              onClick={toggleVote}
-              disabled={isVoting}
-            >
-              <span className={styles.heartIcon}>
-                {hasVoted ? '❤️' : '🤍'}
-              </span>
-              <span className={styles.voteCount}>{voteCount}</span>
+
+      {/* Admin butonları (üst sağ) */}
+      {isAdmin && (
+        <div className={styles.adminStrip}>
+          {photo.canDelete && (
+            <button className={`${styles.iconBtn} ${styles.deleteBtn}`} onClick={handleDelete} title="Sil">
+              🗑️
             </button>
-          </div>
-          {photo.selectedBy && (
-            <div style={{
-              marginTop: '6px',
-              fontSize: '0.75rem',
-              color: '#4ade80',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontWeight: 500,
-            }}>
-              <span>📌</span>
-              <span>{photo.selectedByUsername} seçti</span>
-            </div>
+          )}
+
+          {onToggleHide && (
+            <button 
+              className={styles.iconBtn} 
+              onClick={(e) => { e.stopPropagation(); onToggleHide(photo.id); }} 
+              title={photo.isHidden ? 'Göster' : 'Gizle'}
+            >
+              {photo.isHidden ? '👁️' : '🫣'}
+            </button>
           )}
         </div>
+      )}
+
+      {/* Gizli rozeti */}
+      {photo.isHidden && !isAdmin && (
+        <div className={styles.hiddenBadge}>Gizli</div>
+      )}
+
+      {/* Alt bilgi şeridi */}
+      <div className={styles.strip}>
+        <div className={styles.uploaderRow}>
+          <div className={styles.avatar}>{avatarLetter}</div>
+          <span className={styles.uploaderName}>{displayName}</span>
+        </div>
+
+        <button
+          className={`${styles.voteBtn} ${hasVoted ? styles.voted : ''}`}
+          onClick={toggleVote}
+          disabled={isVoting}
+        >
+          <span className={styles.heartIcon}>{hasVoted ? '❤️' : '🤍'}</span>
+          <span className={styles.voteCount}>{voteCount}</span>
+        </button>
       </div>
     </div>
   );

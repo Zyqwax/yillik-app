@@ -4,6 +4,17 @@ import dbConnect from '@/lib/mongodb';
 import Photo from '@/models/Photo';
 import Vote from '@/models/Vote';
 
+type LeanPhoto = {
+  _id: unknown;
+  url: string;
+  caption: string | null;
+  userId: { _id: unknown; name: string; username: string };
+  voteCount: number;
+  isAnonymous?: boolean;
+  isHidden?: boolean;
+  createdAt: Date;
+};
+
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -20,34 +31,29 @@ export async function GET(req: NextRequest) {
   try {
     await dbConnect();
     
-    const query = session.username === 'admin' ? {} : { isHidden: { $ne: true } };
+    const query = session.role === 'admin' ? {} : { isHidden: { $ne: true } };
 
-    const photos = await Photo.find(query)
-      .populate<{ userId: { name: string, username: string }, selectedBy?: { name: string, username: string } }>('userId', 'name username')
-      .populate('selectedBy', 'name username')
-      .sort(sortQuery);
+    const photos = (await Photo.find(query)
+      .populate('userId', 'name username')
+      .sort(sortQuery)
+      .lean()) as LeanPhoto[];
 
-    const formattedPhotos = await Promise.all(photos.map(async (photo) => {
-      const vote = await Vote.findOne({
-        userId: session.userId,
-        photoId: photo._id
-      });
+    const userVotes = await Vote.find({ userId: session.userId }).select('photoId').lean();
+    const userVotedPhotoIds = new Set(userVotes.map(v => v.photoId.toString()));
 
+    const formattedPhotos = photos.map((photo) => {
       return {
-        id: (photo._id as string).toString(),
+        id: String(photo._id),
         url: photo.url,
-        caption: photo.caption,
+        caption: photo.caption ?? null,
         voteCount: photo.voteCount,
-        user: photo.isAnonymous 
-          ? { name: 'Anonim Kullanıcı', username: 'anonim' } 
+        user: photo.isAnonymous
+          ? { name: 'Anonim Kullanıcı', username: 'anonim' }
           : { name: photo.userId.name, username: photo.userId.username },
-        hasVoted: !!vote,
-        isAdminFavorite: !!photo.isAdminFavorite,
+        hasVoted: userVotedPhotoIds.has(String(photo._id)),
         isHidden: !!photo.isHidden,
-        selectedBy: photo.selectedBy ? (photo.selectedBy as unknown as { _id: string })._id?.toString() : null,
-        selectedByUsername: photo.selectedBy ? (photo.selectedBy as unknown as { username: string }).username : null,
       };
-    }));
+    });
 
     return NextResponse.json({ photos: formattedPhotos });
   } catch (error) {

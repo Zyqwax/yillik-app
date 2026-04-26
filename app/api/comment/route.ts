@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       photoId,
     });
 
-    const populatedComment = await Comment.findById(comment._id).populate('userId', 'name username');
+    const populatedComment = await Comment.findById(comment._id).populate('userId', 'name username').lean();
 
     const formattedComment = {
       id: populatedComment._id.toString(),
