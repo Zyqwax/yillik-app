@@ -9,11 +9,18 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPublicPath = path === '/login' || path.startsWith('/api/auth');
 
-  // Skip middleware for static files, public images, generic Next.js requests
+  // Skip proxy for static files, public images, generic Next.js requests, and PWA assets
   if (
     path.startsWith('/_next') ||
-    path.startsWith('/favicon.ico') ||
-    path.startsWith('/uploads')
+    path.startsWith('/favicon') ||
+    path.startsWith('/uploads') ||
+    path.startsWith('/sw.js') ||
+    path.startsWith('/manifest.json') ||
+    path.startsWith('/icon-') ||
+    path.startsWith('/apple-touch-icon') ||
+    path.endsWith('.png') ||
+    path.endsWith('.ico') ||
+    path.endsWith('.svg')
   ) {
     return NextResponse.next();
   }
